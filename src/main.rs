@@ -9,9 +9,9 @@ use tokio::time;
 
 #[tokio::main]
 async fn main() {
-    let item_auctions = Arc::new(RwLock::new(HashMap::new()));
+    let item_auctions_ref = Arc::new(RwLock::new(HashMap::new()));
 
-    let update_thread_item_auctions = item_auctions.clone();
+    let update_thread_item_auctions = item_auctions_ref.clone();
     tokio::spawn(async move {
         loop {
             println!("Starting to update items...");
@@ -23,7 +23,7 @@ async fn main() {
     });
 
     loop {
-        let item_auctions = item_auctions.read().unwrap();
+        let item_auctions = item_auctions_ref.read().unwrap();
         let auctions = item_auctions.get("AURORA_CHESTPLATE");
 
         match auctions {

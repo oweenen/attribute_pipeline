@@ -57,6 +57,7 @@ pub async fn load_data(
     for auctions in new_item_auction_map.values_mut() {
         auctions.sort_by(|a, b| a.price.cmp(&b.price));
     }
+    println!("Done sorting!");
 
     Ok(new_item_auction_map)
 }
