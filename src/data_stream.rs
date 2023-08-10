@@ -26,17 +26,14 @@ impl AttributeItemAuction {
 
 pub async fn load_data(
 ) -> Result<HashMap<String, Vec<AttributeItemAuction>>, Box<dyn std::error::Error>> {
-    println!("Fetching first auction page");
     let auction_page = fetch_auction_page(0).await?;
     let mut futures = futures::stream::FuturesUnordered::new();
 
     for page_number in 0..auction_page.total_pages {
-        println!("Fetching auction page {}", page_number);
         let future = fetch_auction_page(page_number.clone());
         futures.push(future);
     }
 
-    println!("Parsing auction pages...");
     let mut new_item_auction_map: HashMap<String, Vec<AttributeItemAuction>> = HashMap::new();
     while let Some(auction_page) = futures.next().await {
         let auction_page = auction_page?;
@@ -53,30 +50,9 @@ pub async fn load_data(
         }
     }
 
-    println!("Sorting auction pages...");
     for auctions in new_item_auction_map.values_mut() {
         auctions.sort_by(|a, b| a.price.cmp(&b.price));
     }
-    println!("Done sorting!");
 
     Ok(new_item_auction_map)
 }
-
-//pub fn get_auctions_with_attribute(
-//    &self,
-//    item_id: &str,
-//    attribute: &str,
-//    attribute_level: &i32,
-//) -> Vec<AttributeItemAuction> {
-//    let item_auction_map = self.item_auction_map.lock().unwrap();
-//    let item_auctions = item_auction_map.get(item_id).unwrap();
-//
-//    let mut select_auctions: Vec<AttributeItemAuction> = vec![];
-//    for auction in item_auctions {
-//        if auction.attributes.get(attribute).unwrap_or(&0) == attribute_level {
-//            select_auctions.push(auction.clone());
-//        }
-//    }
-//
-//    return select_auctions;
-//}

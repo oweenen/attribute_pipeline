@@ -14,11 +14,8 @@ async fn main() {
     let update_thread_item_auctions = item_auctions_ref.clone();
     tokio::spawn(async move {
         loop {
-            println!("Starting to update items...");
             let new_item_auctions = data_stream::load_data().await.unwrap();
-            println!("Trying to update items..");
             *update_thread_item_auctions.write().unwrap() = new_item_auctions;
-            println!("Finished updating items!");
             time::sleep(Duration::from_secs(60)).await;
         }
     });
