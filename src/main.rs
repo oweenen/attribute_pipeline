@@ -16,6 +16,7 @@ async fn main() {
         loop {
             println!("Starting to update items...");
             let new_item_auctions = data_stream::load_data().await.unwrap();
+            println!("Trying to update items..");
             *update_thread_item_auctions.write().unwrap() = new_item_auctions;
             println!("Finished updating items!");
             time::sleep(Duration::from_secs(60)).await;
@@ -23,6 +24,7 @@ async fn main() {
     });
 
     loop {
+        time::sleep(Duration::from_secs(10)).await;
         let item_auctions = item_auctions_ref.read().unwrap();
         let auctions = item_auctions.get("AURORA_CHESTPLATE");
 
@@ -30,7 +32,5 @@ async fn main() {
             Some(auctions) => println!("There are {} aurora chestplates", auctions.len()),
             None => println!("There are no aurora chestplates :("),
         }
-
-        time::sleep(Duration::from_secs(10)).await;
     }
 }
