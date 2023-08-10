@@ -26,14 +26,17 @@ impl AttributeItemAuction {
 
 pub async fn load_data(
 ) -> Result<HashMap<String, Vec<AttributeItemAuction>>, Box<dyn std::error::Error>> {
+    println!("Fetching first auction page");
     let auction_page = fetch_auction_page(0).await?;
     let mut futures = futures::stream::FuturesUnordered::new();
 
     for page_number in 0..auction_page.total_pages {
+        println!("Fetching auction page {}", page_number);
         let future = fetch_auction_page(page_number.clone());
         futures.push(future);
     }
 
+    println!("Parsing auction pages...");
     let mut new_item_auction_map: HashMap<String, Vec<AttributeItemAuction>> = HashMap::new();
     while let Some(auction_page) = futures.next().await {
         let auction_page = auction_page?;
@@ -50,6 +53,7 @@ pub async fn load_data(
         }
     }
 
+    println!("Sorting auction pages...");
     for auctions in new_item_auction_map.values_mut() {
         auctions.sort_by(|a, b| a.price.cmp(&b.price));
     }
