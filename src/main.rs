@@ -2,13 +2,14 @@ mod data_extraction;
 mod data_source;
 mod data_stream;
 
+use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 use tokio::time;
 
 #[tokio::main]
 async fn main() {
-    let item_auctions = Arc::new(RwLock::new(data_stream::load_data().await.unwrap()));
+    let item_auctions = Arc::new(RwLock::new(HashMap::new()));
 
     let update_thread_item_auctions = item_auctions.clone();
     tokio::spawn(async move {
@@ -23,9 +24,13 @@ async fn main() {
 
     loop {
         let item_auctions = item_auctions.read().unwrap();
-        let auctions = item_auctions.get("AURORA_CHESTPLATE").unwrap();
+        let auctions = item_auctions.get("AURORA_CHESTPLATE");
 
-        println!("There are {} aurora chestplates", auctions.len());
+        match auctions {
+            Some(auctions) => println!("There are {} aurora chestplates", auctions.len()),
+            None => println!("There are no aurora chestplates :("),
+        }
+
         time::sleep(Duration::from_secs(10)).await;
     }
 }
