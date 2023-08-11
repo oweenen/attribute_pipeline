@@ -1,33 +1,32 @@
+#[macro_use]
+extern crate lazy_static;
+
 mod data_extraction;
 mod data_source;
 mod data_stream;
+mod handlers;
 
+use actix_web::{web, App, HttpServer};
 use std::collections::HashMap;
+use std::env;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
-use tokio::time;
 
-#[tokio::main]
-async fn main() {
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
     let item_auctions_ref = Arc::new(RwLock::new(HashMap::new()));
 
-    let update_thread_item_auctions = item_auctions_ref.clone();
-    tokio::spawn(async move {
-        loop {
-            let new_item_auctions = data_stream::load_data().await.unwrap();
-            *update_thread_item_auctions.write().unwrap() = new_item_auctions;
-            time::sleep(Duration::from_secs(60)).await;
-        }
-    });
+    data_stream::update_loop(item_auctions_ref.clone(), Duration::from_secs(60));
 
-    loop {
-        time::sleep(Duration::from_secs(10)).await;
-        let item_auctions = item_auctions_ref.read().unwrap();
-        let auctions = item_auctions.get("AURORA_CHESTPLATE");
+    let port = env::var("PORT").unwrap_or_else(|_| "9090".to_string());
+    let address = format!("0.0.0.0:{}", port);
 
-        match auctions {
-            Some(auctions) => println!("There are {} aurora chestplates", auctions.len()),
-            None => println!("There are no aurora chestplates :("),
-        }
-    }
+    HttpServer::new(move || {
+        App::new()
+            .app_data(web::Data::new(item_auctions_ref.clone()))
+            .service(handlers::get_attribute_prices)
+    })
+    .bind(address)?
+    .run()
+    .await
 }

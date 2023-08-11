@@ -2,10 +2,13 @@ use crate::{
     data_extraction::{decode_item_bytes, ItemData},
     data_source::{fetch_auction_page, Auction},
 };
-use std::collections::HashMap;
+use serde::Serialize;
+use std::time::Duration;
+use std::{collections::HashMap, sync::Arc, sync::RwLock};
+use tokio::time;
 use tokio_stream::StreamExt;
 
-#[derive(Clone)]
+#[derive(Serialize)]
 pub struct AttributeItemAuction {
     pub uuid: String,
     pub price: i64,
@@ -24,7 +27,42 @@ impl AttributeItemAuction {
     }
 }
 
-pub async fn load_data(
+lazy_static! {
+    static ref KUUDRA_ARMOR_MAPPING: HashMap<&'static str, &'static str> = [
+        ("AURORA_HELMET", "KUUDRA_HELMET"),
+        ("CRIMSON_HELMET", "KUUDRA_HELMET"),
+        ("FERVOR_HELMET", "KUUDRA_HELMET"),
+        ("HOLLOW_HELMET", "KUUDRA_HELMET"),
+        ("TERROR_HELMET", "KUUDRA_HELMET"),
+        ("AURORA_CHESTPLATE", "KUUDRA_CHESTPLATE"),
+        ("CRIMSON_CHESTPLATE", "KUUDRA_CHESTPLATE"),
+        ("FERVOR_CHESTPLATE", "KUUDRA_CHESTPLATE"),
+        ("HOLLOW_CHESTPLATE", "KUUDRA_CHESTPLATE"),
+        ("TERROR_CHESTPLATE", "KUUDRA_CHESTPLATE"),
+        ("AURORA_LEGGINGS", "KUUDRA_LEGGINGS"),
+        ("CRIMSON_LEGGINGS", "KUUDRA_LEGGINGS"),
+        ("FERVOR_LEGGINGS", "KUUDRA_LEGGINGS"),
+        ("HOLLOW_LEGGINGS", "KUUDRA_LEGGINGS"),
+        ("TERROR_LEGGINGS", "KUUDRA_LEGGINGS"),
+        ("AURORA_BOOTS", "KUUDRA_BOOTS"),
+        ("CRIMSON_BOOTS", "KUUDRA_BOOTS"),
+        ("FERVOR_BOOTS", "KUUDRA_BOOTS"),
+        ("HOLLOW_BOOTS", "KUUDRA_BOOTS"),
+        ("TERROR_BOOTS", "KUUDRA_BOOTS"),
+    ]
+    .iter()
+    .cloned()
+    .collect();
+}
+
+pub fn get_item_bucket(item_id: &str) -> String {
+    match KUUDRA_ARMOR_MAPPING.get(item_id) {
+        Some(bucket_id) => bucket_id.to_string(),
+        None => item_id.to_string(),
+    }
+}
+
+async fn load_data(
 ) -> Result<HashMap<String, Vec<AttributeItemAuction>>, Box<dyn std::error::Error>> {
     let auction_page = fetch_auction_page(0).await?;
     let mut futures = futures::stream::FuturesUnordered::new();
@@ -43,7 +81,7 @@ pub async fn load_data(
                 let item_auction = AttributeItemAuction::new(auction, item_data);
 
                 new_item_auction_map
-                    .entry(item_id)
+                    .entry(get_item_bucket(&item_id))
                     .or_insert_with(Vec::new)
                     .push(item_auction);
             }
@@ -55,4 +93,17 @@ pub async fn load_data(
     }
 
     Ok(new_item_auction_map)
+}
+
+pub fn update_loop(
+    item_auctions_ref: Arc<RwLock<HashMap<String, Vec<AttributeItemAuction>>>>,
+    refresh_rate: Duration,
+) {
+    tokio::spawn(async move {
+        loop {
+            let new_item_auctions = load_data().await.unwrap();
+            *item_auctions_ref.write().unwrap() = new_item_auctions;
+            time::sleep(refresh_rate).await;
+        }
+    });
 }
