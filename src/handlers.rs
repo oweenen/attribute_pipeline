@@ -1,7 +1,7 @@
 use crate::data_stream::{get_item_bucket, AttributeItemAuction};
 use actix_web::{get, web, HttpResponse, Responder};
 use serde::Deserialize;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::sync::{Arc, RwLock};
 
 #[derive(Deserialize)]
@@ -14,7 +14,7 @@ pub struct AttributePricesParams {
 #[get("/getAttributePrices")]
 pub async fn get_attribute_prices(
     params: web::Query<AttributePricesParams>,
-    item_auctions_ref: web::Data<Arc<RwLock<HashMap<String, Vec<AttributeItemAuction>>>>>,
+    item_auctions_ref: web::Data<Arc<RwLock<BTreeMap<String, Vec<AttributeItemAuction>>>>>,
 ) -> impl Responder {
     let item_auctions = item_auctions_ref.read().unwrap();
 

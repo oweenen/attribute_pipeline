@@ -3,7 +3,7 @@ use flate2::read::GzDecoder;
 use serde::{Deserialize, Serialize};
 
 use std::{
-    collections::HashMap,
+    collections::BTreeMap,
     io::{Cursor, Read},
 };
 
@@ -26,7 +26,7 @@ struct Tag {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ItemData {
     pub id: String,
-    pub attributes: HashMap<String, i32>,
+    pub attributes: BTreeMap<String, i32>,
 }
 
 pub fn decode_item_bytes(item_bytes: &String) -> Result<ItemData, Box<dyn std::error::Error>> {

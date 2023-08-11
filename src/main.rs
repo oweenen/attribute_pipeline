@@ -7,14 +7,14 @@ mod data_stream;
 mod handlers;
 
 use actix_web::{web, App, HttpServer};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::env;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let item_auctions_ref = Arc::new(RwLock::new(HashMap::new()));
+    let item_auctions_ref = Arc::new(RwLock::new(BTreeMap::new()));
 
     data_stream::update_loop(item_auctions_ref.clone(), Duration::from_secs(60));
 

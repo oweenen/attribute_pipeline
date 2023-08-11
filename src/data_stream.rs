@@ -4,7 +4,7 @@ use crate::{
 };
 use serde::Serialize;
 use std::time::Duration;
-use std::{collections::HashMap, sync::Arc, sync::RwLock};
+use std::{collections::BTreeMap, sync::Arc, sync::RwLock};
 use tokio::time;
 use tokio_stream::StreamExt;
 
@@ -12,23 +12,25 @@ use tokio_stream::StreamExt;
 pub struct AttributeItemAuction {
     pub uuid: String,
     pub price: i64,
+    pub item_name: String,
     pub item_id: String,
-    pub attributes: HashMap<String, i32>,
+    pub attributes: BTreeMap<String, i32>,
 }
 
 impl AttributeItemAuction {
     fn new(auction: Auction, item_data: ItemData) -> AttributeItemAuction {
         AttributeItemAuction {
-            uuid: auction.uuid.clone(),
+            uuid: auction.uuid,
+            item_name: auction.item_name,
             price: auction.starting_bid,
-            item_id: item_data.id.clone(),
-            attributes: item_data.attributes.clone(),
+            item_id: item_data.id,
+            attributes: item_data.attributes,
         }
     }
 }
 
 lazy_static! {
-    static ref KUUDRA_ARMOR_MAPPING: HashMap<&'static str, &'static str> = [
+    static ref KUUDRA_ARMOR_MAPPING: BTreeMap<&'static str, &'static str> = [
         ("AURORA_HELMET", "KUUDRA_HELMET"),
         ("CRIMSON_HELMET", "KUUDRA_HELMET"),
         ("FERVOR_HELMET", "KUUDRA_HELMET"),
@@ -63,7 +65,7 @@ pub fn get_item_bucket(item_id: &str) -> String {
 }
 
 async fn load_data(
-) -> Result<HashMap<String, Vec<AttributeItemAuction>>, Box<dyn std::error::Error>> {
+) -> Result<BTreeMap<String, Vec<AttributeItemAuction>>, Box<dyn std::error::Error>> {
     let auction_page = fetch_auction_page(0).await?;
     let mut futures = futures::stream::FuturesUnordered::new();
 
@@ -72,7 +74,7 @@ async fn load_data(
         futures.push(future);
     }
 
-    let mut new_item_auction_map: HashMap<String, Vec<AttributeItemAuction>> = HashMap::new();
+    let mut new_item_auction_map: BTreeMap<String, Vec<AttributeItemAuction>> = BTreeMap::new();
     while let Some(auction_page) = futures.next().await {
         let auction_page = auction_page?;
         for auction in auction_page.auctions {
@@ -96,7 +98,7 @@ async fn load_data(
 }
 
 pub fn update_loop(
-    item_auctions_ref: Arc<RwLock<HashMap<String, Vec<AttributeItemAuction>>>>,
+    item_auctions_ref: Arc<RwLock<BTreeMap<String, Vec<AttributeItemAuction>>>>,
     refresh_rate: Duration,
 ) {
     tokio::spawn(async move {
