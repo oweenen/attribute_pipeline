@@ -78,6 +78,10 @@ async fn load_data(
     while let Some(auction_page) = futures.next().await {
         let auction_page = auction_page?;
         for auction in auction_page.auctions {
+            if !auction.bin {
+                continue;
+            }
+
             if let Ok(item_data) = decode_item_bytes(&auction.item_bytes) {
                 let item_id = item_data.id.clone();
                 let item_auction = AttributeItemAuction::new(auction, item_data);
