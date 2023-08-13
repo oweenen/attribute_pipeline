@@ -107,8 +107,10 @@ pub fn update_loop(
 ) {
     tokio::spawn(async move {
         loop {
-            let new_item_auctions = load_data().await.unwrap();
-            *item_auctions_ref.write().unwrap() = new_item_auctions;
+            match load_data().await {
+                Ok(new_item_auctions) => *item_auctions_ref.write().unwrap() = new_item_auctions,
+                Err(e) => println!("Refresh failed: {}", e),
+            }
             time::sleep(refresh_rate).await;
         }
     });
